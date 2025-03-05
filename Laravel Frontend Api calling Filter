@@ -1,5 +1,10 @@
 @extends('layout.layout')
 @section('content')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.30/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -46,6 +51,8 @@
                                     data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
                                     Filters
                                 </button>
+                                <button id="downloadPdf" class="btn btn-danger">Download PDF</button>
+                                <button id="downloadExcel" class="btn btn-success">Download Excel</button>
                             </p>
 
                             <div class="collapse" id="collapseExample">
@@ -166,9 +173,12 @@
                 var selectedBank = $('#province-filter').val();
 
                 var filteredBonds = allBonds.filter(bond => {
-                    return (selectedProject === "" || bond.project?.project_short_name === selectedProject) &&
-                        (selectedBondType === "" || bond.bond_type?.bond_type === selectedBondType) &&
-                        (selectedBondStatus === "" || bond.bond_status?.bond_status === selectedBondStatus) &&
+                    return (selectedProject === "" || bond.project?.project_short_name ===
+                            selectedProject) &&
+                        (selectedBondType === "" || bond.bond_type?.bond_type ===
+                        selectedBondType) &&
+                        (selectedBondStatus === "" || bond.bond_status?.bond_status ===
+                            selectedBondStatus) &&
                         (selectedBank === "" || bond.bank?.bank_name === selectedBank);
                 });
 
@@ -196,6 +206,35 @@
                 });
             }
             showFetchData();
+        });
+    </script>
+
+    <script>
+        document.getElementById("downloadPdf").addEventListener("click", function() {
+            const {
+                jsPDF
+            } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Expired Bonds Report", 14, 10);
+
+            doc.autoTable({
+                html: "#expired_bonds", // Target table
+                startY: 20,
+                theme: "grid",
+                headStyles: {
+                    fillColor: [41, 128, 185]
+                }, // Blue header
+            });
+
+            doc.save("Expired_Bonds_Report.pdf");
+        });
+
+        document.getElementById("downloadExcel").addEventListener("click", function() {
+            let table = document.getElementById("expired_bonds");
+            let wb = XLSX.utils.book_new();
+            let ws = XLSX.utils.table_to_sheet(table);
+            XLSX.utils.book_append_sheet(wb, ws, "Expired Bonds");
+            XLSX.writeFile(wb, "Expired_Bonds_Report.xlsx");
         });
     </script>
 @endsection
