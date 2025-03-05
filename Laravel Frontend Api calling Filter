@@ -1,0 +1,201 @@
+@extends('layout.layout')
+@section('content')
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ route('dashboard') }}">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="#">Expenses</a>
+            </li>
+            <li class="breadcrumb-item active">Expired Report</li>
+        </ol>
+    </nav>
+
+    <!-- Support Tracker -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="nav-align-top nav-tabs-shadow mb-6">
+                <ul class="nav nav-tabs nav-fill" role="tablist">
+                    <li class="nav-item">
+                        <button type="button" class="nav-link active" role="tab" data-bs-toggle="tab"
+                            data-bs-target="#navs-justified-home" aria-controls="navs-justified-home" aria-selected="true">
+                            <span class="d-none d-sm-block">
+                                <i class="tf-icons ti ti-home ti-sm me-1_5"></i> Expired Bonds
+                            </span>
+                            <i class="ti ti-home ti-sm d-sm-none"></i>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" role="tab" data-bs-toggle="tab"
+                            data-bs-target="#navs-justified-profile" aria-controls="navs-justified-profile"
+                            aria-selected="false">
+                            <span class="d-none d-sm-block">
+                                <i class="tf-icons ti ti-user ti-sm me-1_5"></i> Expired Insurance
+                            </span>
+                            <i class="ti ti-user ti-sm d-sm-none"></i>
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <!-- Expired Bonds Table -->
+                    <div class="tab-pane fade show active" id="navs-justified-home" role="tabpanel">
+                        <div class="row">
+                            <p>
+                                <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+                                    Filters
+                                </button>
+                            </p>
+
+                            <div class="collapse" id="collapseExample">
+                                <div class="card card-body mb-4">
+                                    <div class="student-group-form">
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <label for="project-filter">Project</label>
+                                                <select id="project-filter" class="form-select">
+                                                    <option value="">All Projects</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="bond-type-filter">Bond Type</label>
+                                                <select id="bond-type-filter" class="form-select">
+                                                    <option value="">All Bond Type</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="bond-status-filter">Bond Status</label>
+                                                <select id="bond-status-filter" class="form-select">
+                                                    <option value="">All Bond Status</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="province-filter">Banks</label>
+                                                <select id="province-filter" class="form-select">
+                                                    <option value="">All Banks</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12 mt-5">
+                            <div class="card-datatable table-responsive pt-0">
+                                <table id="expired_bonds" class="datatables-basic table nowrap" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>S No</th>
+                                            <th>Project</th>
+                                            <th>Bid Date</th>
+                                            <th>Bond No</th>
+                                            <th>Bond Description</th>
+                                            <th>Bid Amount</th>
+                                            <th>Exp Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var allBonds = [];
+
+            function check() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const bondTypeParam = urlParams.get('bondType');
+                if (bondTypeParam) {
+                    $('#bond-type-filter').val(bondTypeParam).trigger('change');
+                }
+            }
+
+            // Populate Filters
+            function populateFilter(filterId, key, subKey) {
+                var filterElement = $(filterId);
+                filterElement.empty();
+                filterElement.append('<option value="">All</option>');
+
+                const uniqueValues = [...new Set(allBonds.map(bond => bond[key]?.[subKey]).filter(Boolean))];
+
+                uniqueValues.forEach(function(value) {
+                    filterElement.append('<option value="' + value + '">' + value + '</option>');
+                });
+            }
+
+            // Fetch Data and Populate Table
+            function showFetchData() {
+                $.ajax({
+                    url: '/expired-bonds',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        allBonds = response.bonds || []; // Store all data for filtering
+
+                        populateFilter('#project-filter', 'project', 'project_short_name');
+                        populateFilter('#bond-type-filter', 'bond_type', 'bond_type');
+                        populateFilter('#bond-status-filter', 'bond_status', 'bond_status');
+                        populateFilter('#province-filter', 'bank', 'bank_name');
+
+                        check();
+                        renderTable(allBonds);
+                    },
+                    error: function() {
+                        toastr.error('Failed to load data', 'Error');
+                    }
+                });
+            }
+
+            // Apply Filters
+            $('.form-select').on('change', function() {
+                var selectedProject = $('#project-filter').val();
+                var selectedBondType = $('#bond-type-filter').val();
+                var selectedBondStatus = $('#bond-status-filter').val();
+                var selectedBank = $('#province-filter').val();
+
+                var filteredBonds = allBonds.filter(bond => {
+                    return (selectedProject === "" || bond.project?.project_short_name === selectedProject) &&
+                        (selectedBondType === "" || bond.bond_type?.bond_type === selectedBondType) &&
+                        (selectedBondStatus === "" || bond.bond_status?.bond_status === selectedBondStatus) &&
+                        (selectedBank === "" || bond.bank?.bank_name === selectedBank);
+                });
+
+                renderTable(filteredBonds);
+            });
+
+            // Render Table
+            function renderTable(data) {
+                var table = $('#expired_bonds').DataTable();
+                table.clear().draw();
+                var counter = 1;
+
+                data.forEach(function(item) {
+                    let row = $('<tr style="cursor: pointer;">');
+                    row.append('<td>' + counter + '</td>');
+                    row.append('<td>' + (item.project?.project_short_name || 'N/A') + '</td>');
+                    row.append('<td>' + item.bid_date + '</td>');
+                    row.append('<td>' + item.bond_number + '</td>');
+                    row.append('<td>' + item.bond_description + '</td>');
+                    row.append('<td>' + Number(item.bid_amount).toLocaleString() + '</td>');
+                    row.append('<td>' + item.exp_date + '</td>');
+
+                    table.row.add(row).draw(false);
+                    counter++;
+                });
+            }
+            showFetchData();
+        });
+    </script>
+@endsection
