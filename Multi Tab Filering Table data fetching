@@ -1,0 +1,381 @@
+@extends('layout.layout')
+@section('content')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.30/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ route('dashboard') }}">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="#">Reports</a>
+            </li>
+            <li class="breadcrumb-item active">Insurance Report</li>
+        </ol>
+    </nav>
+
+    <!-- Support Tracker -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="nav-align-top nav-tabs-shadow mb-6">
+                <ul class="nav nav-tabs nav-fill" role="tablist">
+                    <li class="nav-item">
+                        <button type="button" class="nav-link active" role="tab" data-bs-toggle="tab"
+                            data-bs-target="#navs-justified-home" aria-controls="navs-justified-home" aria-selected="true">
+                            <span class="d-none d-sm-block">
+                                <i class="tf-icons ti ti-home ti-sm me-1_5"></i> Expired Insurance
+                            </span>
+                            <i class="ti ti-home ti-sm d-sm-none"></i>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button" class="nav-link" role="tab" data-bs-toggle="tab"
+                            data-bs-target="#navs-justified-profile" aria-controls="navs-justified-profile"
+                            aria-selected="false">
+                            <span class="d-none d-sm-block">
+                                <i class="tf-icons ti ti-user ti-sm me-1_5"></i> Active Insurance
+                            </span>
+                            <i class="ti ti-user ti-sm d-sm-none"></i>
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <!-- Expired Bonds Table -->
+                    <div class="tab-pane fade show active" id="navs-justified-home" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseExampleExpired" aria-expanded="false"
+                                        aria-controls="collapseExampleExpired">
+                                        Filters
+                                    </button>
+                                </div>
+                                <div>
+                                    <button id="downloadPdfForExpired" class="btn btn-danger">Download PDF</button>
+                                    <button id="downloadExcelExpired" class="btn btn-success">Download Excel</button>
+                                </div>
+                            </div>
+                            <div class="collapse" id="collapseExampleExpired">
+                                <div class="card card-body mb-4">
+                                    <div class="student-group-form">
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <label for="project-filter">Project</label>
+                                                <select id="project-filter" class="form-select">
+                                                    <option value="">All Projects</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="insurance-type-filter">Insurance Type</label>
+                                                <select id="insurance-type-filter" class="form-select">
+                                                    <option value="">All Insurance Type</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="insurance-status-filter">Insurance Status</label>
+                                                <select id="insurance-status-filter" class="form-select">
+                                                    <option value="">All Insurance Status</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="insurance-company-filter">Insurance Company</label>
+                                                <select id="insurance-company-filter" class="form-select">
+                                                    <option value="">All Insurance Company</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12 mt-5">
+                            <div class="card-datatable table-responsive pt-0">
+                                <table id="expired_insurance" class="datatables-basic table nowrap" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>S No</th>
+                                            <th>Project</th>
+                                            <th>Insurance Amount</th>
+                                            <th>Invoice Amount</th>
+                                            <th>Policy Number</th>
+                                            <th>Start Date</th>
+                                            <th>End Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Bonds Table -->
+                    <div class="tab-pane fade" id="navs-justified-profile" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseExampleActive" aria-expanded="false"
+                                        aria-controls="collapseExampleActive">
+                                        Filters
+                                    </button>
+                                </div>
+                                <div>
+                                    <button id="downloadPdfForActiveInsurance" class="btn btn-danger">Download PDF</button>
+                                    <button id="downloadExcelForActiveInsurance" class="btn btn-success">Download
+                                        Excel</button>
+                                </div>
+                            </div>
+
+                            <div class="collapse" id="collapseExampleActive">
+                                <div class="card card-body mb-4">
+                                    <div class="student-group-form">
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <label for="project-filter-active">Project</label>
+                                                <select id="project-filter-active" class="form-select">
+                                                    <option value="">All Projects</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="insurance-type-filter-active">Insurance Type</label>
+                                                <select id="insurance-type-filter-active" class="form-select">
+                                                    <option value="">All Insurance Type</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="insurance-status-filter-active">Insurance Status</label>
+                                                <select id="insurance-status-filter-active" class="form-select">
+                                                    <option value="">All Insurance Status</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="insurance-filter-active">Insurance Company</label>
+                                                <select id="insurance-filter-active" class="form-select">
+                                                    <option value="">All Insurance Company</option>
+                                                    <!-- Dynamically populated -->
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12 mt-5">
+                            <div class="card-datatable table-responsive pt-0">
+                                <table id="active_insurance" class="datatables-basic table nowrap" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>S No</th>
+                                            <th>Project</th>
+                                            <th>Insurance Amount</th>
+                                            <th>Invoice Amount</th>
+                                            <th>Policy Number</th>
+                                            <th>Start Date</th>
+                                            <th>End Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingSpinner" class="loader-container" style="display: none;">
+        <div class="loader"></div>
+    </div>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var allInsurances = [];
+            var allActiveInsurances = [];
+
+            function check() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const insuranceTypeParam = urlParams.get('insuranceType');
+                if (insuranceTypeParam) {
+                    $('#insurance-type-filter').val(insuranceTypeParam).trigger('change');
+                }
+            }
+
+            // Populate Filters
+            function populateFilter(filterId, key, subKey, data) {
+                var filterElement = $(filterId);
+                filterElement.empty();
+                filterElement.append('<option value="">All</option>');
+
+                const uniqueValues = [...new Set(data.map(insurances => insurances[key]?.[subKey]).filter(Boolean))];
+
+                uniqueValues.forEach(function(value) {
+                    filterElement.append('<option value="' + value + '">' + value + '</option>');
+                });
+            }
+
+            // Fetch Data and Populate Table
+            function showFetchData() {
+                $('#loadingSpinner').show();
+                $.ajax({
+                    url: '/expired-insurance',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        allInsurances = response.insurances || []; // Store all data for filtering
+                        populateFilter('#project-filter', 'project', 'project_short_name', allInsurances);
+                        populateFilter('#insurance-type-filter', 'insurance_type', 'insurance_type', allInsurances);
+                        populateFilter('#insurance-status-filter', 'insurance_status', 'insurance_status', allInsurances);
+                        populateFilter('#insurance-company-filter', 'insurance_company', 'insurance_company', allInsurances);
+
+                        check();
+                        renderTable(allInsurances, '#expired_insurance');
+                        $('#loadingSpinner').hide();
+                    },
+                    error: function() {
+                        toastr.error('Failed to load data', 'Error');
+                        $('#loadingSpinner').hide();
+                    }
+                });
+
+                $.ajax({
+                    url: '/active-insurences',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        allActiveInsurances = response.insurances || []; // Store all data for filtering
+                        populateFilter('#project-filter-active', 'project', 'project_short_name', allActiveInsurances);
+                        populateFilter('#insurance-type-filter-active', 'insurance_type', 'insurance_type', allActiveInsurances);
+                        populateFilter('#insurance-status-filter-active', 'insurance_status', 'insurance_status', allActiveInsurances);
+                        populateFilter('#insurance-filter-active', 'insurance_company', 'insurance_company', allActiveInsurances);
+                        renderTable(allActiveInsurances, '#active_insurance');
+                        $('#loadingSpinner').hide();
+                    },
+                    error: function() {
+                        toastr.error('Failed to load data', 'Error');
+                        $('#loadingSpinner').hide();
+                    }
+                });
+            }
+
+            // Apply Filters
+            $('.form-select').on('change', function() {
+                var selectedProject = $('#project-filter').val();
+                var selectedInsuranceType = $('#insurance-type-filter').val();
+                var selectedInsuranceStatus = $('#insurance-status-filter').val();
+                var selectedInsuranceCompany = $('#insurance-company-filter').val();
+
+                var filteredInsurances = allInsurances.filter(insurances => {
+                    return (selectedProject === "" || insurances.project?.project_short_name === selectedProject) &&
+                        (selectedInsuranceType === "" || insurances.insurance_type?.insurance_type === selectedInsuranceType) &&
+                        (selectedInsuranceStatus === "" || insurances.insurance_status?.insurance_status === selectedInsuranceStatus) &&
+                        (selectedInsuranceCompany === "" || insurances.insurance_company?.insurance_company === selectedInsuranceCompany);
+                });
+
+                renderTable(filteredInsurances, '#expired_insurance');
+            });
+
+            $('#project-filter-active, #insurance-type-filter-active, #insurance-status-filter-active, #insurance-filter-active')
+                .on('change', function() {
+                    var selectedProject = $('#project-filter-active').val();
+                    var selectedInsuranceType = $('#insurance-type-filter-active').val();
+                    var selectedInsuranceStatus = $('#insurance-status-filter-active').val();
+                    var selectedInsuranceCompany = $('#insurance-filter-active').val();
+
+                    var filteredInsurance = allActiveInsurances.filter(insurances => {
+                        return (selectedProject === "" || insurances.project?.project_short_name === selectedProject) &&
+                            (selectedInsuranceType === "" || insurances.insurance_type?.insurance_type === selectedInsuranceType) &&
+                            (selectedInsuranceStatus === "" || insurances.insurance_status?.insurance_status === selectedInsuranceStatus) &&
+                            (selectedInsuranceCompany === "" || insurances.insurance_company?.insurance_company === selectedInsuranceCompany);
+                    });
+
+                    renderTable(filteredInsurance, '#active_insurance');
+                });
+
+            // Render Table
+            function renderTable(data, tableId) {
+                var table = $(tableId).DataTable();
+                table.clear().draw();
+                var counter = 1;
+
+                data.forEach(function(item) {
+                    let row = $('<tr style="cursor: pointer;">');
+                    row.append('<td>' + counter + '</td>');
+                    row.append('<td>' + (item.project?.project_short_name || 'N/A') + '</td>');
+                    row.append('<td>' +  Number(item.insurance_amount).toLocaleString() + '</td>');
+                    row.append('<td>' + Number(item.invoice_amount).toLocaleString() + '</td>');
+                    row.append('<td>' + item.policy_number + '</td>');
+                    row.append('<td>' + item.policy_start_date + '</td>');
+                    row.append('<td>' + item.policy_end_date + '</td>');
+                    table.row.add(row).draw(false);
+                    counter++;
+                });
+            }
+            showFetchData();
+        });
+
+        document.getElementById("downloadPdfForExpired").addEventListener("click", function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Expired Insurance Report", 14, 10);
+
+            doc.autoTable({
+                html: "#expired_insurance", // Target table
+                startY: 20,
+                theme: "grid",
+                headStyles: {
+                    fillColor: [41, 128, 185]
+                }, // Blue header
+            });
+
+            doc.save("Expired_Insurance_Report.pdf");
+        });
+
+        document.getElementById("downloadExcelExpired").addEventListener("click", function() {
+            let table = document.getElementById("expired_insurance");
+            let wb = XLSX.utils.book_new();
+            let ws = XLSX.utils.table_to_sheet(table);
+            XLSX.utils.book_append_sheet(wb, ws, "Expired Insurance");
+            XLSX.writeFile(wb, "Expired_Insurance_Report.xlsx");
+        });
+
+        document.getElementById("downloadPdfForActiveInsurance").addEventListener("click", function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Active Insurance Report", 14, 10);
+
+            doc.autoTable({
+                html: "#active_insurance", // Target table
+                startY: 20,
+                theme: "grid",
+                headStyles: {
+                    fillColor: [41, 128, 185]
+                }, // Blue header
+            });
+
+            doc.save("Active_Insurance_Report.pdf");
+        });
+
+        document.getElementById("downloadExcelForActiveInsurance").addEventListener("click", function() {
+            let table = document.getElementById("active_insurance");
+            let wb = XLSX.utils.book_new();
+            let ws = XLSX.utils.table_to_sheet(table);
+            XLSX.utils.book_append_sheet(wb, ws, "Active Insurance");
+            XLSX.writeFile(wb, "Active_Insurance_Report.xlsx");
+        });
+    </script>
+@endsection
