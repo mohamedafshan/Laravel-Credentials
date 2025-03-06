@@ -1,0 +1,201 @@
+@extends('layout.layout')
+@section('content')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.30/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ route('dashboard') }}">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="#">Reports</a>
+            </li>
+            <li class="breadcrumb-item active">Payment Report</li>
+        </ol>
+    </nav>
+    <div class="row">
+        <p>
+            <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExampleExpired"
+                aria-expanded="false" aria-controls="collapseExampleExpired">
+                Filters
+            </button>
+            <button id="downloadPdf" class="btn btn-danger">Download PDF</button>
+            <button id="downloadExcel" class="btn btn-success">Download Excel</button>
+        </p>
+        <div class="collapse" id="collapseExampleExpired">
+            <div class="card card-body mb-4">
+                <div class="student-group-form">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="project-filter">Project</label>
+                            <select id="project-filter" class="form-select">
+                                <option value="">All Projects</option>
+                                <!-- Dynamically populated -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="sub-project-filter">Sub Project</label>
+                            <select id="sub-project-filter" class="form-select">
+                                <option value="">All Sub Projects</option>
+                                <!-- Dynamically populated -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="ipc-filter">IPC</label>
+                            <select id="ipc-filter" class="form-select">
+                                <option value="">All IPC</option>
+                                <!-- Dynamically populated -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="bank-filter">Bank</label>
+                            <select id="bank-filter" class="form-select">
+                                <option value="">All Insurance Company</option>
+                                <!-- Dynamically populated -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Support Tracker -->
+        <div class="col-md-12 mt-5">
+            <div class="card">
+                <div class="card-datatable pt-0">
+                    <div class="card-datatable table-responsive pt-0">
+                        <table id="payment-table" class="datatables-basic table nowrap" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Paid Date</th>
+                                    <th>Paid Amount</th>
+                                    <th>Project</th>
+                                    <th>Sub Project</th>
+                                    <th>Ipc</th>
+                                    <th>Bank</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var allPayments = [];
+
+            function check() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const paymentParam = urlParams.get('payment');
+                if (paymentParam) {
+                    $('#project-filter').val(paymentParam).trigger('change');
+                }
+            }
+
+            // Populate Filters
+            function populateFilter(filterId, key, subKey) {
+                var filterElement = $(filterId);
+                filterElement.empty();
+                filterElement.append('<option value="">All</option>');
+
+                const uniqueValues = [...new Set(allPayments.map(payment => payment[key]?.[subKey]).filter(Boolean))];
+
+                uniqueValues.forEach(function(value) {
+                    filterElement.append('<option value="' + value + '">' + value + '</option>');
+                });
+            }
+
+            // Fetch Data and Populate Table
+            function showFetchData() {
+                $.ajax({
+                    url: '/payment-get-all',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        allPayments = response.message || []; // Store all data for filtering
+                        populateFilter('#project-filter', 'project', 'project_short_name');
+                        populateFilter('#sub-project-filter', 'sub_project', 'project_name');
+                        populateFilter('#ipc-filter', 'income_information', 'ipc_name');
+                        populateFilter('#bank-filter', 'bank', 'bank_name');
+                        check();
+                        renderTable(allPayments);
+                    },
+                    error: function() {
+                        toastr.error('Failed to load data', 'Error');
+                    }
+                });
+            }
+
+            // Apply Filters
+            $('.form-select').on('change', function() {
+                var selectedProject = $('#project-filter').val();
+                var selectedSubProject = $('#sub-project-filter').val();
+                var selectedIpc = $('#ipc-filter').val();
+                var selectedBank = $('#bank-filter').val();
+
+                var filteredPayments = allPayments.filter(payment => {
+                    return (selectedProject === "" || payment.project?.project_short_name === selectedProject) &&
+                        (selectedSubProject === "" || payment.sub_project?.project_name === selectedSubProject) &&
+                        (selectedIpc === "" || payment.income_information?.ipc_name === selectedIpc) &&
+                        (selectedBank === "" || payment.bank?.bank_name === selectedBank);
+                });
+                renderTable(filteredPayments);
+            });
+
+            // Render Table
+            function renderTable(data) {
+                var table = $('#payment-table').DataTable();
+                table.clear().draw();
+                var counter = 1;
+
+                data.forEach(function(item) {
+                    let row = $('<tr style="cursor: pointer;">');
+                    row.append('<td>' + counter + '</td>');
+                    row.append('<td>' + item.paid_date + '</td>');
+                    row.append('<td>' + Number(item.paid_amount).toLocaleString() + '</td>');
+                    row.append('<td>' + (item.project?.project_short_name || 'N/A') + '</td>');
+                    row.append('<td>' + (item.sub_project?.project_name || 'N/A') + '</td>');
+                    row.append('<td>' + (item.income_information?.ipc_name || 'N/A') + '</td>');
+                    row.append('<td>' + (item.bank?.bank_name || 'N/A') + '</td>');
+                    table.row.add(row).draw(false);
+                    counter++;
+                });
+            }
+            showFetchData();
+        });
+    </script>
+
+    <script>
+        document.getElementById("downloadPdf").addEventListener("click", function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Payment Report", 14, 10);
+
+            doc.autoTable({
+                html: "#payment-table", // Target table
+                startY: 20,
+                theme: "grid",
+                headStyles: {
+                    fillColor: [41, 128, 185]
+                }, // Blue header
+            });
+
+            doc.save("Payment_Report.pdf");
+        });
+
+        document.getElementById("downloadExcel").addEventListener("click", function() {
+            let table = document.getElementById("payment-table");
+            let wb = XLSX.utils.book_new();
+            let ws = XLSX.utils.table_to_sheet(table);
+            XLSX.utils.book_append_sheet(wb, ws, "Payments");
+            XLSX.writeFile(wb, "Payment_Report.xlsx");
+        });
+    </script>
+@endsection
